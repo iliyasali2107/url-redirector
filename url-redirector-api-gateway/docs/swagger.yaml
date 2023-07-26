@@ -1,0 +1,52 @@
+definitions:
+  pb.LoginResponse:
+    properties:
+      error:
+        type: string
+      status:
+        type: integer
+      token:
+        type: string
+    type: object
+  routes.LoginRequestBody:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: login
+      parameters:
+      - description: credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/routes.LoginRequestBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/pb.LoginResponse'
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Login existing user
+      tags:
+      - auth
+swagger: "2.0"

@@ -3,6 +3,7 @@ package routes
 import (
 	"context"
 	"net/http"
+
 	"url-redirector-api-gateway/pkg/auth/pb"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,17 @@ type LoginRequestBody struct {
 	Password string `json:"password" binding:"required,alphanum"`
 }
 
+// @Summary Login existing user
+// @Tags auth
+// @Description login
+// @Accept  json
+// @Produce  json
+// @Param input body LoginRequestBody true "credentials"
+// @Success 200 {object} pb.LoginResponse
+// @Failure 404
+// @Failure 400
+// @Failure 500
+// @Router /auth/login [post]
 func Login(ctx *gin.Context, c pb.AuthServiceClient) {
 	var req LoginRequestBody
 
@@ -32,8 +44,8 @@ func Login(ctx *gin.Context, c pb.AuthServiceClient) {
 		switch status.Code() {
 		case codes.NotFound:
 			ctx.JSON(http.StatusNotFound, status.Message())
-		case codes.Unauthenticated:
-			ctx.JSON(http.StatusUnauthorized, status.Message())
+		case codes.InvalidArgument:
+			ctx.JSON(http.StatusBadRequest, status.Message())
 		default:
 			ctx.JSON(http.StatusInternalServerError, "something unexpected occured")
 		}

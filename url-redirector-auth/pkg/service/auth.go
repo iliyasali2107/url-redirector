@@ -67,7 +67,7 @@ func (srv *service) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginR
 
 	match := utils.CheckPasswordHash(req.Password, user.Password)
 	if !match {
-		return nil, status.Errorf(codes.Unauthenticated, "password is incorrect")
+		return nil, status.Errorf(codes.InvalidArgument, "password is incorrect")
 	}
 
 	token, _ := srv.Jwt.GenerateToken(user)
