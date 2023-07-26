@@ -77,3 +77,31 @@
 
 
 
+
+
+
+## Deployment
+
+To deploy this project run
+
+
+```bash
+  git clone https://github.com/iliyasali2107/url-redirector
+```
+```bash
+  cd url-redirector
+```
+
+
+```bash
+  make build & make run
+```
+
+
+
+
+
+## Documentation
+
+[soon...]
+
