@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+
 	"url-redirecter-url/pkg/config"
 	"url-redirecter-url/pkg/db"
 	"url-redirecter-url/pkg/pb"
@@ -32,7 +33,7 @@ func main() {
 
 	grpcServer := grpc.NewServer()
 
-	pb.RegisterURLServiceServer(grpcServer, srv)
+	pb.RegisterUrlServiceServer(grpcServer, srv)
 	reflection.Register(grpcServer)
 
 	if err := grpcServer.Serve(lis); err != nil {

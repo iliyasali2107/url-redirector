@@ -15,15 +15,15 @@ import (
 
 type service struct {
 	S db.Storage
-	pb.UnimplementedURLServiceServer
+	pb.UnimplementedUrlServiceServer
 }
 
 type Service interface {
-	pb.URLServiceServer
-	AddURL(context.Context, *pb.AddURLRequest) (*pb.AddURLResponse, error)
-	GetURL(context.Context, *pb.GetURLRequest) (*pb.GetURLResponse, error)
-	SetActiveURL(context.Context, *pb.SetActiveUrlRequest) (*pb.SetActiveUrlResponse, error)
-	GetUserURLs(context.Context, *pb.GetUserURLsRequest) (*pb.GetUserURLsResponse, error)
+	pb.UrlServiceServer
+	AddUrl(context.Context, *pb.AddUrlRequest) (*pb.AddUrlResponse, error)
+	GetUrl(context.Context, *pb.GetUrlRequest) (*pb.GetUrlResponse, error)
+	ActivateUrl(context.Context, *pb.ActivateUrlRequest) (*pb.ActivateUrlResponse, error)
+	GetUserUrls(context.Context, *pb.GetUserUrlsRequest) (*pb.GetUserUrlsResponse, error)
 }
 
 func NewService(s db.Storage) Service {
@@ -32,73 +32,74 @@ func NewService(s db.Storage) Service {
 	}
 }
 
-func (srv *service) AddURL(ctx context.Context, req *pb.AddURLRequest) (*pb.AddURLResponse, error) {
-	url := models.URL{
+func (srv *service) AddUrl(ctx context.Context, req *pb.AddUrlRequest) (*pb.AddUrlResponse, error) {
+	url := models.Url{
 		UserID: req.UserId,
-		URL:    req.Url,
+		Url:    req.Url,
 	}
-	url, err := srv.S.InsertURL(url)
+	url, err := srv.S.InsertUrl(url)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "something unexpected happened")
 	}
 
 	pbUrl := fromUrlToProto(url)
 
-	return &pb.AddURLResponse{
+	return &pb.AddUrlResponse{
 		Status: http.StatusOK,
 		Url:    pbUrl,
 	}, nil
 }
 
-func (srv *service) GetURL(ctx context.Context, req *pb.GetURLRequest) (*pb.GetURLResponse, error) {
-	url, err := srv.S.GetActiveURL(req.Id)
+func (srv *service) GetUrl(ctx context.Context, req *pb.GetUrlRequest) (*pb.GetUrlResponse, error) {
+	url, err := srv.S.GetActiveUrl(req.Id)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, status.Errorf(codes.NotFound, "there is no requested url")
+			return nil, status.Errorf(codes.NotFound, "there is no active url")
 		}
 
 		return nil, status.Errorf(codes.Internal, "something unexpected happened")
 	}
 
-	return &pb.GetURLResponse{
+	return &pb.GetUrlResponse{
 		Status: http.StatusOK,
 		Url:    fromUrlToProto(url),
 	}, nil
 }
 
-func (srv *service) SetActiveURL(ctx context.Context, req *pb.SetActiveUrlRequest) (*pb.SetActiveUrlResponse, error) {
-	activeURL, err := srv.S.GetActiveURL(req.UrlId)
+func (srv *service) ActivateUrl(ctx context.Context, req *pb.ActivateUrlRequest) (*pb.ActivateUrlResponse, error) {
+	dbUrl, err := srv.S.GetUrl(req.UrlId)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, status.Errorf(codes.NotFound, err.Error())
-		}
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "there is no requested url")
 	}
 
-	if activeURL.UserID != req.UserId {
+	if dbUrl.UserID != req.UserId {
 		return nil, status.Errorf(codes.PermissionDenied, "u are not allowed to activate this url")
 	}
 
-	if activeURL.ID == req.UrlId {
-		return nil, status.Errorf(codes.AlreadyExists, "this url already activated")
+	if dbUrl.Active {
+		return nil, status.Errorf(codes.AlreadyExists, "this url is already activated")
 	}
 
-	_, err = srv.S.SetActive(req.UrlId)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to set active url: %v", err)
-	}
-	_, err = srv.S.SetNotActive(activeURL.ID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to set unactive url: %v", err)
+	activeUrl, err := srv.S.GetActiveUrl(req.UserId)
+	if err == nil {
+		_, err := srv.S.Deactivate(activeUrl.ID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to deactivet url: %v", err)
+		}
 	}
 
-	return &pb.SetActiveUrlResponse{
+	_, err = srv.S.Activate(req.UrlId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to activate url: %v", err)
+	}
+
+	return &pb.ActivateUrlResponse{
 		Status: http.StatusOK,
 	}, nil
 }
 
-func (srv *service) GetUserURLs(ctx context.Context, req *pb.GetUserURLsRequest) (*pb.GetUserURLsResponse, error) {
-	urls, err := srv.S.GetUserURLs(req.UserId)
+func (srv *service) GetUserUrls(ctx context.Context, req *pb.GetUserUrlsRequest) (*pb.GetUserUrlsResponse, error) {
+	urls, err := srv.S.GetUserUrls(req.UserId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, status.Errorf(codes.NotFound, err.Error())
@@ -106,19 +107,20 @@ func (srv *service) GetUserURLs(ctx context.Context, req *pb.GetUserURLsRequest)
 		return nil, status.Errorf(codes.Internal, "failed to get user urls")
 	}
 
-	return &pb.GetUserURLsResponse{
+	return &pb.GetUserUrlsResponse{
 		Status: http.StatusOK,
-		Url:    fromUrlsToProtos(urls),
+		Urls:   fromUrlsToProtos(urls),
 	}, nil
 }
 
-func fromUrlsToProtos(urls []models.URL) []*pb.URL {
-	protoUrls := []*pb.URL{}
+func fromUrlsToProtos(urls []models.Url) []*pb.Url {
+	protoUrls := []*pb.Url{}
 	for _, url := range urls {
-		protoUrl := &pb.URL{
+		protoUrl := &pb.Url{
 			Id:     url.ID,
 			UserId: url.UserID,
-			Url:    url.URL,
+			Url:    url.Url,
+			Active: url.Active,
 		}
 
 		protoUrls = append(protoUrls, protoUrl)
@@ -126,10 +128,11 @@ func fromUrlsToProtos(urls []models.URL) []*pb.URL {
 	return protoUrls
 }
 
-func fromUrlToProto(url models.URL) *pb.URL {
-	return &pb.URL{
+func fromUrlToProto(url models.Url) *pb.Url {
+	return &pb.Url{
 		Id:     url.ID,
 		UserId: url.UserID,
-		Url:    url.URL,
+		Url:    url.Url,
+		Active: url.Active,
 	}
 }

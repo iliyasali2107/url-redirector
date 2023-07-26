@@ -1,0 +1,70 @@
+version: "3.9"
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: url_redirector
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - 5432:5432
+
+    
+  url:
+    container_name: url_service
+    build: url-redirector-url
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 50051:50051
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: url_redirector
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DNS: postgres://user:secret@postgres:5432/url_redirector
+      JWT_SECRET_KEY: not-secret-key
+      ISSUER: URL-svc
+      EXPIRATION_HOURS: 1
+      PORT: url_service:50051
+    
+
+  auth:
+    container_name: auth_service
+    build: url-redirector-auth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - 50052:50052
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: url_redirector
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DNS: postgres://user:secret@postgres:5432/url_redirector
+      JWT_SECRET_KEY: not-secret-key
+      ISSUER: auth-svc
+      EXPIRATION_HOURS: 1
+      PORT: auth_service:50052
+
+  api-gateway:
+    container_name: api_gateway
+    build: url-redirector-api-gateway
+    ports:
+      - 3000:3000
+    depends_on:
+      - auth
+      - url
+    environment:
+      PORT: :3000
+      URL_SERVICE: url_service:50051
+      AUTH_SERVICE: auth_service:50052

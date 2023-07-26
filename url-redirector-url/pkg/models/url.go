@@ -1,8 +1,8 @@
 package models
 
-type URL struct {
+type Url struct {
 	ID     int64
 	UserID int64
-	URL    string
+	Url    string
 	Active bool
 }

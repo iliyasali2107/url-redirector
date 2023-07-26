@@ -2,9 +2,9 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
+
 	"url-redirector-api-gateway/pkg/auth/pb"
 
 	"github.com/gin-gonic/gin"
@@ -22,14 +22,12 @@ func (c *AuthMiddlewareConfig) AuthRequired(ctx *gin.Context) {
 	authorization := ctx.Request.Header.Get("authorization")
 
 	if authorization == "" {
-		ctx.AbortWithStatus(http.StatusUnauthorized)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 		return
-
 	}
-
 	token := strings.Split(authorization, "Bearer ")
 	if len(token) < 2 {
-		ctx.AbortWithStatus(http.StatusUnauthorized)
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 		return
 	}
 	res, err := c.svc.Client.Validate(context.Background(), &pb.ValidateRequest{
@@ -37,12 +35,11 @@ func (c *AuthMiddlewareConfig) AuthRequired(ctx *gin.Context) {
 	})
 
 	if err != nil || res.Status != http.StatusOK {
-		fmt.Println(err)
-		ctx.AbortWithStatus(http.StatusUnauthorized)
+
+		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "you are not authorized"})
 		return
 	}
 
 	ctx.Set("userId", res.UserID)
-
 	ctx.Next()
 }

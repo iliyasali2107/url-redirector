@@ -1,6 +1,8 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"os"
+)
 
 type Config struct {
 	Port            string `mapstructure:"PORT"`
@@ -8,24 +10,31 @@ type Config struct {
 	JWTSecretKey    string `mapstructure:"JWT_SECRET_KEY"`
 	Issuer          string `mapstructure:"ISSUER"`
 	ExpirationHours int    `mapstructure:"EXPIRATION_HOURS"`
-	UrlSvcPort      string `mapstructure:"URL_SVC_PORT"`
-	AuthSvcPort     string `mapstructure:"AUTH_SVC_PORT"`
+	UrlSvcPort      string `mapstructure:"URL_SERVICE"`
+	AuthSvcPort     string `mapstructure:"AUTH_SERVICE"`
 }
 
 func LoadConfig() (config Config, err error) {
-	viper.AddConfigPath("./pkg/config/envs")
-	viper.SetConfigName(".env")
-	viper.SetConfigType("env")
+	config.Port = os.Getenv("PORT")
+	config.AuthSvcPort = os.Getenv("AUTH_SERVICE")
+	config.UrlSvcPort = os.Getenv("URL_SERVICE")
 
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-
-	if err != nil {
-		return
+	config.JWTSecretKey = os.Getenv("JWT_SECRET_KEY")
+	if config.JWTSecretKey == "" {
+		config.JWTSecretKey = "not-secret-key"
+	}
+	config.Issuer = os.Getenv("ISSUER")
+	config.Port = os.Getenv("PORT")
+	if config.Port == "" {
+		config.Port = ":3000"
 	}
 
-	err = viper.Unmarshal(&config)
+	if config.AuthSvcPort == "" {
+		config.AuthSvcPort = ":50052"
+	}
+	if config.UrlSvcPort == "" {
+		config.UrlSvcPort = ":50051"
+	}
 
 	return
 }

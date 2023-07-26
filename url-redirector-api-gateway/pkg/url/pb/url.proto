@@ -5,55 +5,56 @@ package url;
 option go_package = "./pkg/url/pb";
 
 
-service URLService {
-    rpc AddURL(AddURLRequest) returns (AddURLResponse) {}
-    rpc GetURL(GetURLRequest) returns (GetURLResponse) {}
-    rpc SetActiveUrl(SetActiveUrlRequest) returns (SetActiveUrlResponse) {}
-    rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse) {}
+service UrlService {
+    rpc AddUrl(AddUrlRequest) returns (AddUrlResponse) {}
+    rpc GetUrl(GetUrlRequest) returns (GetUrlResponse) {}
+    rpc ActivateUrl(ActivateUrlRequest) returns (ActivateUrlResponse) {}
+    rpc GetUserUrls(GetUserUrlsRequest) returns (GetUserUrlsResponse) {}
 }
 
-message AddURLRequest {
+message AddUrlRequest {
     int64 user_id = 1;
     string url = 2;
 }
 
-message AddURLResponse {
+message AddUrlResponse {
     int64 status = 1;
-    URL url = 2;
+    Url url = 2;
 }
 
-message GetURLRequest {
+message GetUrlRequest {
     int64 id = 1;
 }
 
-message GetURLResponse {
+message GetUrlResponse {
     int64 status = 1;
-    URL url = 2;
+    Url url = 2;
 }
 
-message SetActiveUrlRequest {
+message ActivateUrlRequest {
     int64 url_id = 1;
     int64 user_id = 2;
 }
 
-message SetActiveUrlResponse {
+message ActivateUrlResponse {
     int64 status = 1;
 }
 
 
-message URL {
+message Url {
     int64 id = 1;
     int64 user_id = 2;
     string url = 3;
+    bool active = 4;
 }
 
 
-message GetUserURLsRequest {
+message GetUserUrlsRequest {
     int64 user_id = 1;
 }
 
 
-message GetUserURLsResponse {
+message GetUserUrlsResponse {
     int64 status = 1;
-    repeated URL url = 2;
+    repeated Url urls = 2;
 }

@@ -11,12 +11,12 @@ import (
 )
 
 type Storage interface {
-	InsertURL(models.URL) (models.URL, error)
-	GetActiveURL(int64) (models.URL, error)
-	SetActive(int64) (int64, error)
-	SetNotActive(int64) (int64, error)
-	GetURL(int64) (models.URL, error)
-	GetUserURLs(userID int64) ([]models.URL, error)
+	InsertUrl(models.Url) (models.Url, error)
+	GetActiveUrl(int64) (models.Url, error)
+	Activate(int64) (int64, error)
+	Deactivate(int64) (int64, error)
+	GetUrl(int64) (models.Url, error)
+	GetUserUrls(userID int64) ([]models.Url, error)
 }
 
 type storage struct {
@@ -51,29 +51,29 @@ func Init(url string) Storage {
 	return &storage{conn}
 }
 
-func (s *storage) InsertURL(url models.URL) (models.URL, error) {
+func (s *storage) InsertUrl(url models.Url) (models.Url, error) {
 	query := `INSERT INTO urls(user_id, url, active) VALUES($1, $2, $3) RETURNING id, user_id, url, active`
-	var res models.URL
-	err := s.DB.QueryRow(context.Background(), query, url.UserID, url.URL, url.Active).Scan(&res.ID, &res.UserID, &res.URL, &res.Active)
+	var res models.Url
+	err := s.DB.QueryRow(context.Background(), query, url.UserID, url.Url, url.Active).Scan(&res.ID, &res.UserID, &res.Url, &res.Active)
 	if err != nil {
-		return models.URL{}, fmt.Errorf("failed to insert url %w", err)
+		return models.Url{}, fmt.Errorf("failed to insert url %w", err)
 	}
 
 	return res, nil
 }
 
-func (s *storage) GetActiveURL(userID int64) (models.URL, error) {
+func (s *storage) GetActiveUrl(userID int64) (models.Url, error) {
 	query := `SELECT * FROM urls WHERE user_id = $1 AND active = true`
-	var url models.URL
-	err := s.DB.QueryRow(context.Background(), query, userID).Scan(&url.ID, &url.UserID, &url.URL, &url.Active)
+	var url models.Url
+	err := s.DB.QueryRow(context.Background(), query, userID).Scan(&url.ID, &url.UserID, &url.Url, &url.Active)
 	if err != nil {
-		return models.URL{}, fmt.Errorf("failed to get url: %w", err)
+		return models.Url{}, err
 	}
 
 	return url, nil
 }
 
-func (s *storage) SetActive(urlID int64) (int64, error) {
+func (s *storage) Activate(urlID int64) (int64, error) {
 	query := `UPDATE urls SET active = true WHERE id = $1 RETURNING id;`
 	var id int64
 	err := s.DB.QueryRow(context.Background(), query, urlID).Scan(&id)
@@ -84,18 +84,18 @@ func (s *storage) SetActive(urlID int64) (int64, error) {
 	return id, nil
 }
 
-func (s *storage) GetURL(id int64) (models.URL, error) {
+func (s *storage) GetUrl(id int64) (models.Url, error) {
 	query := `SELECT * FROM urls WHERE id = $1`
-	var url models.URL
-	err := s.DB.QueryRow(context.Background(), query, id).Scan(&url.ID, &url.UserID, &url.URL, &url.Active)
+	var url models.Url
+	err := s.DB.QueryRow(context.Background(), query, id).Scan(&url.ID, &url.UserID, &url.Url, &url.Active)
 	if err != nil {
-		return models.URL{}, err
+		return models.Url{}, err
 	}
 
 	return url, nil
 }
 
-func (s *storage) SetNotActive(urlID int64) (int64, error) {
+func (s *storage) Deactivate(urlID int64) (int64, error) {
 	query := `UPDATE urls SET active = false WHERE id = $1 AND active = true RETURNING id;`
 	var id int64
 	err := s.DB.QueryRow(context.Background(), query, urlID).Scan(&id)
@@ -106,10 +106,10 @@ func (s *storage) SetNotActive(urlID int64) (int64, error) {
 	return id, nil
 }
 
-func (s *storage) GetUserURLs(userID int64) ([]models.URL, error) {
+func (s *storage) GetUserUrls(userID int64) ([]models.Url, error) {
 	query := `SELECT * FROM urls WHERE user_id = $1`
 
-	var urls []models.URL
+	var urls []models.Url
 
 	rows, err := s.DB.Query(context.Background(), query, userID)
 	if err != nil {
@@ -119,8 +119,8 @@ func (s *storage) GetUserURLs(userID int64) ([]models.URL, error) {
 	hasRows := false
 
 	for rows.Next() {
-		var url models.URL
-		err := rows.Scan(&url.ID, &url.UserID, &url.URL, &url.Active)
+		var url models.Url
+		err := rows.Scan(&url.ID, &url.UserID, &url.Url, &url.Active)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +129,7 @@ func (s *storage) GetUserURLs(userID int64) ([]models.URL, error) {
 		hasRows = true
 	}
 
-	if hasRows == false {
+	if !hasRows {
 		return nil, pgx.ErrNoRows
 	}
 

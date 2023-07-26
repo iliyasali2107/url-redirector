@@ -2,77 +2,78 @@ package db_test
 
 import (
 	"testing"
+
 	"url-redirecter-url/pkg/models"
 	"url-redirecter-url/pkg/utils"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestInsertURL(t *testing.T) {
-	insertURL(t)
+func TestInsertUrl(t *testing.T) {
+	insertUrl(t)
 }
 
-func TestGetActiveURL(t *testing.T) {
+func TestGetActiveUrl(t *testing.T) {
 	// rand1 := randomUrl()
 
-	// active1, err := TestStorage.InsertURL(rand1)
+	// active1, err := TestStorage.InsertUrl(rand1)
 
-	ins1 := insertURL(t)
+	ins1 := insertUrl(t)
 
 	userId := ins1.UserID
 
-	_, err := TestStorage.SetActive(ins1.ID)
+	_, err := TestStorage.Activate(ins1.ID)
 
-	res, err := TestStorage.GetActiveURL(userId)
+	res, err := TestStorage.GetActiveUrl(userId)
 	require.NoError(t, err)
 	require.NotEmpty(t, res)
 	require.True(t, res.Active)
 }
 
 func TestSetActive(t *testing.T) {
-	url := insertURL(t)
-	urlId, err := TestStorage.SetActive(url.ID)
+	url := insertUrl(t)
+	urlId, err := TestStorage.Activate(url.ID)
 	require.NoError(t, err)
-	resUrl, err := TestStorage.GetURL(urlId)
+	resUrl, err := TestStorage.GetUrl(urlId)
 	require.NoError(t, err)
 	require.NotEmpty(t, resUrl)
 	require.True(t, resUrl.Active)
 }
 
 func TestSetNotActive(t *testing.T) {
-	url := insertURL(t)
-	activeUrlId, err := TestStorage.SetActive(url.ID)
+	url := insertUrl(t)
+	activeUrlId, err := TestStorage.Activate(url.ID)
 	require.NoError(t, err)
 
-	notActiveUrlId, err := TestStorage.SetNotActive(activeUrlId)
+	notActiveUrlId, err := TestStorage.Deactivate(activeUrlId)
 	require.NoError(t, err)
 
-	resUrl, err := TestStorage.GetURL(notActiveUrlId)
+	resUrl, err := TestStorage.GetUrl(notActiveUrlId)
 	require.NoError(t, err)
 	require.NotEmpty(t, resUrl)
 	require.False(t, resUrl.Active)
 }
 
-func TestGetURL(t *testing.T) {
-	url := insertURL(t)
+func TestGetUrl(t *testing.T) {
+	url := insertUrl(t)
 
-	res, err := TestStorage.GetURL(url.ID)
+	res, err := TestStorage.GetUrl(url.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, res)
 	require.Equal(t, url, res)
 }
 
-func TestGetUserURLs(t *testing.T) {
+func TestGetUserUrls(t *testing.T) {
 	userID := utils.RandomInt(1, 1000)
-	var urls []models.URL
+	var urls []models.Url
 	for i := 0; i < 10; i++ {
-		url := models.URL{
+		url := models.Url{
 			UserID: userID,
-			URL:    utils.RandomString(10),
+			Url:    utils.RandomString(10),
 			Active: false,
 		}
 
-		resUrl, err := TestStorage.InsertURL(url)
+		resUrl, err := TestStorage.InsertUrl(url)
 		require.NoError(t, err)
 
 		urls = append(urls, resUrl)
@@ -84,20 +85,20 @@ func TestGetUserURLs(t *testing.T) {
 	}
 }
 
-func randomUrl() models.URL {
-	return models.URL{
+func randomUrl() models.Url {
+	return models.Url{
 		UserID: utils.RandomInt(1, 50),
-		URL:    utils.RandomString(10),
+		Url:    utils.RandomString(10),
 		Active: false,
 	}
 }
 
-func insertURL(t *testing.T) models.URL {
+func insertUrl(t *testing.T) models.Url {
 	randUrl := randomUrl()
-	resUrl, err := TestStorage.InsertURL(randUrl)
+	resUrl, err := TestStorage.InsertUrl(randUrl)
 	require.NoError(t, err)
 	require.NotEmpty(t, resUrl)
 	require.Equal(t, randUrl.UserID, resUrl.UserID)
-	require.Equal(t, randUrl.URL, resUrl.URL)
+	require.Equal(t, randUrl.Url, resUrl.Url)
 	return resUrl
 }

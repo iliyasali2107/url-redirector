@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+
 	"url-redirector-api-gateway/pkg/url/pb"
 
 	"github.com/gin-gonic/gin"
@@ -13,19 +14,19 @@ type GetUserUrlsRequestBody struct {
 	UserId int64 `json:"user_id"`
 }
 
-func GetUserURLs(ctx *gin.Context, client pb.URLServiceClient) {
+func GetUserUrls(ctx *gin.Context, client pb.UrlServiceClient) {
 	var reqBody GetUserUrlsRequestBody
-	err := ctx.BindJSON(&reqBody)
+	err := ctx.ShouldBindJSON(&reqBody)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, "incorrect user id")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "incorrect user id"})
 		return
 	}
 
-	req := &pb.GetUserURLsRequest{
+	req := &pb.GetUserUrlsRequest{
 		UserId: reqBody.UserId,
 	}
 
-	res, err := client.GetUserURLs(ctx, req)
+	res, err := client.GetUserUrls(ctx, req)
 	if err != nil {
 		st, _ := status.FromError(err)
 		if st.Code() == codes.NotFound {

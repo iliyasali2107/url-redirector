@@ -1,6 +1,8 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"os"
+)
 
 type Config struct {
 	Port            string `mapstructure:"PORT"`
@@ -12,19 +14,19 @@ type Config struct {
 }
 
 func LoadConfig() (config Config, err error) {
-	viper.AddConfigPath("./pkg/config/envs")
-	viper.SetConfigName(".env")
-	viper.SetConfigType("env")
-
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-
-	if err != nil {
-		return
+	config.DBUrl = os.Getenv("POSTGRES_DNS")
+	if config.DBUrl == "" {
+		config.DBUrl = "postgres://user:secret@localhost:5432/url_redirector"
 	}
-
-	err = viper.Unmarshal(&config)
+	config.JWTSecretKey = os.Getenv("JWT_SECRET_KEY")
+	if config.JWTSecretKey == "" {
+		config.JWTSecretKey = "not-secret-key"
+	}
+	config.Issuer = os.Getenv("ISSUER")
+	config.Port = os.Getenv("PORT")
+	if config.Port == "" {
+		config.Port = ":50051"
+	}
 
 	return
 }
